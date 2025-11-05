@@ -20,6 +20,8 @@
 
   <h2>📁 Upload Player Stats</h2>
   <input type="file" id="uploadJson" accept=".json" onchange="loadJson(this)" />
+  <br/>
+  <button onclick="downloadSample()">Download Sample Data</button>
 
   <div class="player">
     <h2>Player 1</h2>
@@ -61,6 +63,15 @@
   <div id="result"></div>
 
 <script>
+function downloadSample() {
+  const url = 'https://yourdomain.com/sample-players.json'; // Replace with your actual URL
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'sample-players.json';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+} 
   function formatNumber(num) {
     if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + 'M';
     if (num >= 1_000) return (num / 1_000).toFixed(2) + 'K';
@@ -170,3 +181,4 @@
 </script>
 </body>
 </html>
+
