@@ -62,6 +62,20 @@
 
   <button onclick="simulate()">Simulate Fight</button>
   <div id="result"></div>
+  
+  <h2>🪓 Debug Panel</h2>
+<div id="debugPanel" style="max-height: 300px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc;">
+  <table id="debugTable" border="1" cellpadding="5" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Time (s)</th>
+        <th>Player 1 Health</th>
+        <th>Player 2 Health</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
 function downloadSample() {
@@ -69,10 +83,20 @@ function downloadSample() {
    window.open(url, '_blank');  
 } 
   function formatNumber(num) {
-    if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + 'M';
-    if (num >= 1_000) return (num / 1_000).toFixed(2) + 'K';
-    return num.toFixed(2);
+  const abs = Math.abs(num);
+  let formatted;
+
+  if (abs >= 1_000_000) {
+    formatted = (abs / 1_000_000).toFixed(2) + 'M';
+  } else if (abs >= 1_000) {
+    formatted = (abs / 1_000).toFixed(2) + 'K';
+  } else {
+    formatted = abs.toFixed(2);
   }
+
+  return num < 0 ? '-' + formatted : formatted;
+}
+
 
   function getStats(prefix) {
     const baseHealth = +document.getElementById(prefix + '_health').value;
@@ -107,55 +131,90 @@ function downloadSample() {
     return dps * p.lifesteal + p.baseHealth * p.regen;
   }
 
-  function computeTTD(player, enemy) {
-  const playerDPS = computeDPS(player);
-  const enemyDPS = computeDPS(enemy);
-  const incoming = enemyDPS * (1 - player.block);
-  const delay = player.meleeDelay;
+function computeTTD(defender, attacker, label) {
+  const attackerDPS = computeDPS(attacker);
+  const incomingBase = attackerDPS * (1 - defender.block);
+  const delay = attacker.meleeDelay;
   const dt = 0.1;
   let time = 0;
-  let health = player.totalHealth;
+  let health = defender.totalHealth;
+
+  const rows = [];
 
   while (health > 0 && time < 9999) {
-    const regen = player.baseHealth * player.regen;
-    const lifesteal = time >= delay ? playerDPS * player.lifesteal : 0;
+    const regen = defender.baseHealth * defender.regen;
+    const lifesteal = time >= delay ? attackerDPS * attacker.lifesteal : 0;
     const sustain = regen + lifesteal;
+
+    const incoming = time >= delay ? incomingBase : 0;
     const net = incoming - sustain;
     if (net > 0) health -= net * dt;
+
+    rows.push({ time: time.toFixed(1), label, health: health.toFixed(2) });
     time += dt;
   }
 
-  return health > 0 ? Infinity : time;
+  return { ttd: health > 0 ? Infinity : time, timeline: rows };
 }
 
   function simulate() {
-    const p1 = getStats('p1');
-    const p2 = getStats('p2');
+  const p1 = getStats('p1');
+  const p2 = getStats('p2');
 
-    const dps1 = computeDPS(p1);
-    const dps2 = computeDPS(p2);
-    const sustain1 = computeSustain(p1, dps1);
-    const sustain2 = computeSustain(p2, dps2);
+  const dps1 = computeDPS(p1);
+  const dps2 = computeDPS(p2);
+  const sustain1 = computeSustain(p1, dps1);
+  const sustain2 = computeSustain(p2, dps2);
 
-    const ttd1 = computeTTD(p1, p2);
-    const ttd2 = computeTTD(p2, p1);
+  const result1 = computeTTD(p1, p2, 'Player 1');
+  const result2 = computeTTD(p2, p1, 'Player 2');
 
-    document.getElementById('p1_stats').innerHTML = `DPS: ${formatNumber(dps1)} | Sustain: ${formatNumber(sustain1)}/sec`;
-    document.getElementById('p2_stats').innerHTML = `DPS: ${formatNumber(dps2)} | Sustain: ${formatNumber(sustain2)}/sec`;
+  document.getElementById('p1_stats').innerHTML = `DPS: ${formatNumber(dps1)} | Sustain: ${formatNumber(sustain1)}/sec`;
+  document.getElementById('p2_stats').innerHTML = `DPS: ${formatNumber(dps2)} | Sustain: ${formatNumber(sustain2)}/sec`;
 
-    let result = `Player 1 TTD: ${ttd1.toFixed(2)}s<br>Player 2 TTD: ${ttd2.toFixed(2)}s<br><br>`;
-    if (ttd1 === Infinity && ttd2 === Infinity) {
-      result += "⚖️ It's a stalemate!";
-    } else if (ttd1 > ttd2) {
-      result += "🏆 Player 1 would win!";
-    } else if (ttd2 > ttd1) {
-      result += "🏆 Player 2 would win!";
-    } else {
-      result += "🤜🤛 It's a tie!";
-    }
-
-    document.getElementById('result').innerHTML = result;
+  let result = `Player 1 TTD: ${result1.ttd.toFixed(2)}s<br>Player 2 TTD: ${result2.ttd.toFixed(2)}s<br><br>`;
+  if (result1.ttd === Infinity && result2.ttd === Infinity) {
+    result += "⚖️ It's a stalemate!";
+  } else if (result1.ttd > result2.ttd) {
+    result += "🏆 Player 1 would win!";
+  } else if (result2.ttd > result1.ttd) {
+    result += "🏆 Player 2 would win!";
+  } else {
+    result += "🤜🤛 It's a tie!";
   }
+
+  document.getElementById('result').innerHTML = result;
+
+  // Build debug table
+  const tableBody = document.querySelector('#debugTable tbody');
+  tableBody.innerHTML = '';
+  const maxSteps = Math.max(result1.timeline.length, result2.timeline.length);
+  for (let i = 0; i < maxSteps; i++) {
+    const t1 = result1.timeline[i] || {};
+    const t2 = result2.timeline[i] || {};
+    const row = document.createElement('tr');
+    
+	const time = +(t1.time || t2.time);
+const p1Start = +p1.meleeDelay.toFixed(1);
+const p2Start = +p2.meleeDelay.toFixed(1);
+
+const isP1Start = time === p1Start;
+const isP2Start = time === p2Start;
+
+row.innerHTML = `
+  <td>${time.toFixed(1)}</td>
+  <td style="background:${isP1Start ? '#d4f7d4' : 'transparent'}">
+    ${t1.health ? formatNumber(+t1.health) : ''}
+  </td>
+  <td style="background:${isP2Start ? '#d4f7d4' : 'transparent'}">
+    ${t2.health ? formatNumber(+t2.health) : ''}
+  </td>
+`;
+
+	
+    tableBody.appendChild(row);
+  }
+}
 
   function loadJson(input) {
     const file = input.files[0];
