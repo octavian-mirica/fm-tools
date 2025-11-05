@@ -65,13 +65,7 @@
 <script>
 function downloadSample() {
   const url = 'https://raw.githubusercontent.com/octavian-mirica/combat-simulator/main/data-sample.json'; // Replace with your actual URL
-  const link = document.createElement('a');
-  link.href = url;
-  link.target = '_blank';
-  link.download = 'sample-players.json';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+   window.open(url, '_blank');  
 } 
   function formatNumber(num) {
     if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + 'M';
@@ -182,6 +176,7 @@ function downloadSample() {
 </script>
 </body>
 </html>
+
 
 
 
