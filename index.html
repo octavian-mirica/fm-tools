@@ -149,7 +149,7 @@ function computeTTD(defender, attacker, label) {
 
   const rows = [];
 
-  while (health > 0 && time < 99) {
+  while (health > 0 && time < 999) {
     const regen = defender.baseHealth * defender.regen;
     const lifesteal = time >= delayDefender ? defenderDPS * defender.lifesteal : 0;
     const sustain = regen + lifesteal;
@@ -269,13 +269,3 @@ row.innerHTML = `
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
