@@ -135,8 +135,14 @@ function downloadSample() {
 
 function computeTTD(defender, attacker, label) {
   const attackerDPS = computeDPS(attacker);
+  const defenderDPS = computeDPS(defender);
+
   const incomingBase = attackerDPS * (1 - defender.block);
-  const delay = attacker.meleeDelay;
+  const outgoingBase = defenderDPS * (1 - attacker.block);
+
+  const delayAttacker = attacker.meleeDelay;
+  const delayDefender = defender.meleeDelay;
+
   const dt = 0.1;
   let time = 0;
   let health = defender.totalHealth;
@@ -145,19 +151,29 @@ function computeTTD(defender, attacker, label) {
 
   while (health > 0 && time < 9999) {
     const regen = defender.baseHealth * defender.regen;
-    const lifesteal = time >= delay ? attackerDPS * attacker.lifesteal : 0;
+    const lifesteal = time >= delayDefender ? defenderDPS * defender.lifesteal : 0;
     const sustain = regen + lifesteal;
 
-    const incoming = time >= delay ? incomingBase : 0;
+    const incoming = time >= delayAttacker ? incomingBase : 0;
     const net = incoming - sustain;
+
     if (net > 0) health -= net * dt;
 
-    rows.push({ time: time.toFixed(1), label, health: health.toFixed(2) });
+    rows.push({
+      time: time.toFixed(1),
+      label,
+      health: health.toFixed(2)
+    });
+
     time += dt;
   }
 
-  return { ttd: health > 0 ? Infinity : time, timeline: rows };
+  return {
+    ttd: health > 0 ? Infinity : time,
+    timeline: rows
+  };
 }
+
 
   function simulate() {
   const p1 = getStats('p1');
