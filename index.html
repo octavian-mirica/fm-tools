@@ -27,11 +27,11 @@
     <h2>Player 1</h2>
     <div id="p1">
       <label>Base Damage: <input type="number" id="p1_damage" value="100" /></label>
-      <label>Base Speed (hits/sec): <input type="number" id="p1_basespeed" value="0.56" step="0.01" /></label>
+      <label>Base Speed (hits/sec): <input type="number" id="p1_basespeed" value="0.588" step="0.01" /></label>
       <label>Attack Speed (%): <input type="number" id="p1_speed" value="0" /></label>
       <label>Double Chance (%): <input type="number" id="p1_double" value="0" /></label>
       <label>Crit Chance (%): <input type="number" id="p1_crit" value="0" /></label>
-      <label>Crit Damage (%): <input type="number" id="p1_critdmg" value="120" /></label>
+      <label>Crit Damage (%): <input type="number" id="p1_critdmg" value="0" /></label>
       <label>Lifesteal (%): <input type="number" id="p1_lifesteal" value="0" /></label>
       <label>Health Regen (%/sec): <input type="number" id="p1_regen" value="0" /></label>
       <label>Block Chance (%): <input type="number" id="p1_block" value="0" /></label>
@@ -46,11 +46,11 @@
     <h2>Player 2</h2>
     <div id="p2">
       <label>Base Damage: <input type="number" id="p2_damage" value="100" /></label>
-      <label>Base Speed (hits/sec): <input type="number" id="p2_basespeed" value="0.56" step="0.01" /></label>
+      <label>Base Speed (hits/sec): <input type="number" id="p2_basespeed" value="0.588" step="0.01" /></label>
       <label>Attack Speed (%): <input type="number" id="p2_speed" value="0" /></label>
       <label>Double Chance (%): <input type="number" id="p2_double" value="0" /></label>
       <label>Crit Chance (%): <input type="number" id="p2_crit" value="0" /></label>
-      <label>Crit Damage (%): <input type="number" id="p2_critdmg" value="120" /></label>
+      <label>Crit Damage (%): <input type="number" id="p2_critdmg" value="0" /></label>
       <label>Lifesteal (%): <input type="number" id="p2_lifesteal" value="0" /></label>
       <label>Health Regen (%/sec): <input type="number" id="p2_regen" value="0" /></label>
       <label>Block Chance (%): <input type="number" id="p2_block" value="0" /></label>
@@ -109,7 +109,7 @@ function downloadSample() {
       speed: +document.getElementById(prefix + '_speed').value / 100,
       double: +document.getElementById(prefix + '_double').value / 100,
       crit: +document.getElementById(prefix + '_crit').value / 100,
-      critdmg: +document.getElementById(prefix + '_critdmg').value / 100,
+      critdmg: (+document.getElementById(prefix + '_critdmg').value / 100) + 1.2,
       lifesteal: +document.getElementById(prefix + '_lifesteal').value / 100,
       regen: +document.getElementById(prefix + '_regen').value / 100,
       block: +document.getElementById(prefix + '_block').value / 100,
