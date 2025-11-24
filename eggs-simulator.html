@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Key Drop Simulator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label { display: block; margin-top: 10px; }
+    input { width: 100px; }
+    button { margin-top: 15px; }
+    .result { margin-top: 20px; font-weight: bold; }
+    #chanceSum { margin-top: 10px; font-weight: bold; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <h2>Key Drop Simulator</h2>
+
+  <form id="calcForm">
+    <h3>Egg Drop Chances (%)</h3>
+    <label>Common: <input type="number" id="common" value="17.5" step="0.01" oninput="updateChanceSum()"></label>
+    <label>Rare: <input type="number" id="rare" value="16.5" step="0.01" oninput="updateChanceSum()"></label>
+    <label>Epic: <input type="number" id="epic" value="16.5" step="0.01" oninput="updateChanceSum()"></label>
+    <label>Legendary: <input type="number" id="legendary" value="16.5" step="0.01" oninput="updateChanceSum()"></label>
+    <label>Ultimate: <input type="number" id="ultimate" value="28.05" step="0.01" oninput="updateChanceSum()"></label>
+    <label>Mythic: <input type="number" id="mythic" value="4.95" step="0.01" oninput="updateChanceSum()"></label>
+
+    <div id="chanceSum">Total Chance: 100%</div>
+
+    <h3>Extra Egg Chance (%)</h3>
+    <label><input type="number" id="extraEggChance" value="0" step="0.01"></label>
+
+    <h3>Target Points</h3>
+    <label><input type="number" id="targetPoints" value="500000"></label>
+
+    <button type="button" onclick="simulateKeys()">Simulate</button>
+  </form>
+
+  <div class="result" id="result"></div>
+  <div id="debug"></div>
+
+  <script>
+    function updateChanceSum() {
+      const values = [
+        parseFloat(document.getElementById('common').value) || 0,
+        parseFloat(document.getElementById('rare').value) || 0,
+        parseFloat(document.getElementById('epic').value) || 0,
+        parseFloat(document.getElementById('legendary').value) || 0,
+        parseFloat(document.getElementById('ultimate').value) || 0,
+        parseFloat(document.getElementById('mythic').value) || 0
+      ];
+      const sum = values.reduce((a, b) => a + b, 0);
+      const label = document.getElementById('chanceSum');
+      label.textContent = `Total Chance: ${sum.toFixed(2)}%`;
+      label.style.color = (Math.abs(sum - 100) < 0.01) ? "green" : "red";
+    }
+
+    function simulateKeys() {
+      const points = {
+        common: 250,
+        rare: 1000,
+        epic: 2000,
+        legendary: 4000,
+        ultimate: 8000,
+        mythic: 16000
+      };
+
+      const chances = {
+        common: parseFloat(document.getElementById('common').value),
+        rare: parseFloat(document.getElementById('rare').value),
+        epic: parseFloat(document.getElementById('epic').value),
+        legendary: parseFloat(document.getElementById('legendary').value),
+        ultimate: parseFloat(document.getElementById('ultimate').value),
+        mythic: parseFloat(document.getElementById('mythic').value)
+      };
+
+      const extraEggChance = parseFloat(document.getElementById('extraEggChance').value) / 100;
+      const targetPoints = parseFloat(document.getElementById('targetPoints').value);
+
+      const totalChance = Object.values(chances).reduce((a, b) => a + b, 0);
+      const normalized = {};
+      for (let rarity in chances) {
+        normalized[rarity] = chances[rarity] / totalChance;
+      }
+
+      function pickRarity() {
+        const r = Math.random();
+        let cumulative = 0;
+        for (let rarity in normalized) {
+          cumulative += normalized[rarity];
+          if (r <= cumulative) return rarity;
+        }
+        return "common";
+      }
+
+      let totalPoints = 0;
+      let keyCount = 0;
+      let rows = [];
+
+      while (totalPoints < targetPoints) {
+        keyCount++;
+        let eggs = 2;
+        if (Math.random() < extraEggChance) eggs++;
+
+        let eggDetails = [];
+        let keyPoints = 0;
+
+        for (let i = 0; i < eggs; i++) {
+          const rarity = pickRarity();
+          const eggPoints = points[rarity];
+          keyPoints += eggPoints;
+          eggDetails.push(`${rarity} (${eggPoints})`);
+        }
+
+        totalPoints += keyPoints;
+        rows.push(`<tr><td>${keyCount}</td><td>${eggs}</td><td>${eggDetails.join(", ")}</td><td>${keyPoints}</td><td>${totalPoints}</td></tr>`);
+      }
+
+      document.getElementById('result').innerText =
+        `Reached ${targetPoints} points in ${keyCount} keys.`;
+
+      document.getElementById('debug').innerHTML =
+        `<table><tr><th>Key #</th><th>Eggs</th><th>Details</th><th>Points</th><th>Total Points</th></tr>${rows.join("")}</table>`;
+    }
+
+    // Initialize sum on load
+    updateChanceSum();
+  </script>
+</body>
+</html>
