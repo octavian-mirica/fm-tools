@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Combat DPS Simulator</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+    h2 { margin-top: 10px; }
+    .player { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+    label { display: block; margin: 5px 0 2px; }
+    input[type="number"], input[type="file"] { width: 120px; margin-bottom: 10px; }
+    button { margin-top: 20px; padding: 10px 20px; }
+    #result { margin-top: 30px; font-weight: bold; }
+    .stats { margin-top: 10px; font-style: italic; }
+  </style>
+</head>
+
+<body>
+  <h1>⚔️ Combat DPS Simulator (by Fitz using Copilot)</h1>
+
+  <h2>📁 Upload or Download Player Stats</h2>
+  <input type="file" id="uploadJson" accept=".json" onchange="loadJson(this)" />
+  <button style="margin-left: 50px" onclick="downloadSample()">Download Sample Data</button>
+
+<div style="display: flex; gap: 40px; align-items: flex-start;">
+  <div>
+    <h2>Player 1</h2>
+    <div id="p1">
+      <label>Base Damage: <input type="number" id="p1_damage" value="100" /></label>
+      <label>Base Speed (hits/sec): <input type="number" id="p1_basespeed" value="0.588" step="0.01" /></label>
+      <label>Attack Speed (%): <input type="number" id="p1_speed" value="0" /></label>
+      <label>Double Chance (%): <input type="number" id="p1_double" value="0" /></label>
+      <label>Crit Chance (%): <input type="number" id="p1_crit" value="0" /></label>
+      <label>Crit Damage (%): <input type="number" id="p1_critdmg" value="0" /></label>
+      <label>Lifesteal (%): <input type="number" id="p1_lifesteal" value="0" /></label>
+      <label>Health Regen (%/sec): <input type="number" id="p1_regen" value="0" /></label>
+      <label>Block Chance (%): <input type="number" id="p1_block" value="0" /></label>
+      <label>Health: <input type="number" id="p1_health" value="1000" /></label>
+      <label>Health Multiplier (%) for PvP: <input type="number" id="p1_hmult" value="500" /></label>
+	  <label>Melee Delay (sec): <input type="number" id="p1_meleeDelay" value="0" step="0.1" /></label>
+    </div>
+    <div class="stats" id="p1_stats"></div>
+  </div>
+
+  <div>
+    <h2>Player 2</h2>
+    <div id="p2">
+      <label>Base Damage: <input type="number" id="p2_damage" value="100" /></label>
+      <label>Base Speed (hits/sec): <input type="number" id="p2_basespeed" value="0.588" step="0.01" /></label>
+      <label>Attack Speed (%): <input type="number" id="p2_speed" value="0" /></label>
+      <label>Double Chance (%): <input type="number" id="p2_double" value="0" /></label>
+      <label>Crit Chance (%): <input type="number" id="p2_crit" value="0" /></label>
+      <label>Crit Damage (%): <input type="number" id="p2_critdmg" value="0" /></label>
+      <label>Lifesteal (%): <input type="number" id="p2_lifesteal" value="0" /></label>
+      <label>Health Regen (%/sec): <input type="number" id="p2_regen" value="0" /></label>
+      <label>Block Chance (%): <input type="number" id="p2_block" value="0" /></label>
+      <label>Health: <input type="number" id="p2_health" value="1000" /></label>
+      <label>Health Multiplier (%) for PvP: <input type="number" id="p2_hmult" value="500" /></label>
+	  <label>Melee Delay (sec): <input type="number" id="p2_meleeDelay" value="0" step="0.1" /></label>
+    </div>
+    <div class="stats" id="p2_stats"></div>
+  </div>
+  </div>
+
+  <button onclick="simulate()">Simulate Fight</button>
+  <div id="result"></div>
+  
+  <h2>🪓 Debug Panel</h2>
+<div id="debugPanel" style="max-height: 300px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc;">
+  <table id="debugTable" border="1" cellpadding="5" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Time (s)</th>
+        <th>Player 1 Health</th>
+        <th>Player 2 Health</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+function downloadSample() {
+  const url = 'https://raw.githubusercontent.com/octavian-mirica/combat-simulator/main/data-sample.json'; // Replace with your actual URL
+   window.open(url, '_blank');  
+} 
+  function formatNumber(num) {
+  const abs = Math.abs(num);
+  let formatted;
+
+  if (abs >= 1_000_000) {
+    formatted = (abs / 1_000_000).toFixed(2) + 'M';
+  } else if (abs >= 1_000) {
+    formatted = (abs / 1_000).toFixed(2) + 'K';
+  } else {
+    formatted = abs.toFixed(2);
+  }
+
+  return num < 0 ? '-' + formatted : formatted;
+}
+
+
+  function getStats(prefix) {
+    const baseHealth = +document.getElementById(prefix + '_health').value;
+    const healthMultiplier = +document.getElementById(prefix + '_hmult').value / 100;
+    return {
+      damage: +document.getElementById(prefix + '_damage').value,
+      basespeed: +document.getElementById(prefix + '_basespeed').value,
+      speed: +document.getElementById(prefix + '_speed').value / 100,
+      double: +document.getElementById(prefix + '_double').value / 100,
+      crit: +document.getElementById(prefix + '_crit').value / 100,
+      critdmg: (+document.getElementById(prefix + '_critdmg').value / 100) + 1.2,
+      lifesteal: +document.getElementById(prefix + '_lifesteal').value / 100,
+      regen: +document.getElementById(prefix + '_regen').value / 100,
+      block: +document.getElementById(prefix + '_block').value / 100,
+      baseHealth: baseHealth,
+      totalHealth: baseHealth * healthMultiplier,
+	  meleeDelay: +document.getElementById(prefix + '_meleeDelay').value
+    };
+  }
+
+  function computeDPS(p) {
+    const ed = p.damage * (
+      (1 - p.double) * (1 - p.crit) +
+      2 * p.double * (1 - p.crit) +
+      p.critdmg * (1 - p.double) * p.crit +
+      2 * p.critdmg * p.double * p.crit
+    );
+    return ed * p.basespeed * (1 + p.speed);
+  }
+
+  function computeSustain(p, dps) {
+    return dps * p.lifesteal + p.baseHealth * p.regen;
+  }
+
+function computeTTD(defender, attacker, label) {
+  const attackerDPS = computeDPS(attacker);
+  const defenderDPS = computeDPS(defender);
+
+  const incomingBase = attackerDPS * (1 - defender.block);
+  const outgoingBase = defenderDPS * (1 - attacker.block);
+
+  const delayAttacker = attacker.meleeDelay;
+  const delayDefender = defender.meleeDelay;
+
+  const dt = 0.1;
+  let time = 0;
+  let health = defender.totalHealth;
+
+  const rows = [];
+
+  while (health > 0 && time < 999) {
+    const regen = defender.baseHealth * defender.regen;
+    const lifesteal = time >= delayDefender ? defenderDPS * defender.lifesteal : 0;
+    const sustain = regen + lifesteal;
+
+    const incoming = time >= delayAttacker ? incomingBase : 0;
+    const net = incoming - sustain;
+
+    if (net > 0) health -= net * dt;
+
+    rows.push({
+      time: time.toFixed(1),
+      label,
+      health: health.toFixed(2)
+    });
+
+    time += dt;
+  }
+
+  return {
+    ttd: health > 0 ? Infinity : time,
+    timeline: rows
+  };
+}
+
+
+  function simulate() {
+  const p1 = getStats('p1');
+  const p2 = getStats('p2');
+
+  const dps1 = computeDPS(p1);
+  const dps2 = computeDPS(p2);
+  const sustain1 = computeSustain(p1, dps1);
+  const sustain2 = computeSustain(p2, dps2);
+
+  const result1 = computeTTD(p1, p2, 'Player 1');
+  const result2 = computeTTD(p2, p1, 'Player 2');
+
+  document.getElementById('p1_stats').innerHTML = `DPS: ${formatNumber(dps1)} | Sustain: ${formatNumber(sustain1)}/sec`;
+  document.getElementById('p2_stats').innerHTML = `DPS: ${formatNumber(dps2)} | Sustain: ${formatNumber(sustain2)}/sec`;
+
+  let result = `Player 1 TTD: ${result1.ttd.toFixed(2)}s<br>Player 2 TTD: ${result2.ttd.toFixed(2)}s<br><br>`;
+  if (result1.ttd === Infinity && result2.ttd === Infinity) {
+    result += "⚖️ It's a stalemate!";
+  } else if (result1.ttd > result2.ttd) {
+    result += "🏆 Player 1 would win!";
+  } else if (result2.ttd > result1.ttd) {
+    result += "🏆 Player 2 would win!";
+  } else {
+    result += "🤜🤛 It's a tie!";
+  }
+
+  document.getElementById('result').innerHTML = result;
+
+  // Build debug table
+  const tableBody = document.querySelector('#debugTable tbody');
+  tableBody.innerHTML = '';
+  const maxSteps = Math.max(result1.timeline.length, result2.timeline.length);
+  for (let i = 0; i < maxSteps; i++) {
+    const t1 = result1.timeline[i] || {};
+    const t2 = result2.timeline[i] || {};
+    const row = document.createElement('tr');
+    
+	const time = +(t1.time || t2.time);
+const p1Start = +p1.meleeDelay.toFixed(1);
+const p2Start = +p2.meleeDelay.toFixed(1);
+
+const isP1Start = time === p1Start;
+const isP2Start = time === p2Start;
+
+row.innerHTML = `
+  <td>${time.toFixed(1)}</td>
+  <td style="background:${isP1Start ? '#d4f7d4' : 'transparent'}">
+    ${t1.health ? formatNumber(+t1.health) : ''}
+  </td>
+  <td style="background:${isP2Start ? '#d4f7d4' : 'transparent'}">
+    ${t2.health ? formatNumber(+t2.health) : ''}
+  </td>
+`;
+
+	
+    tableBody.appendChild(row);
+  }
+}
+
+  function loadJson(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        fillPlayerInputs('p1', data.player1);
+        fillPlayerInputs('p2', data.player2);
+        simulate();
+      } catch (err) {
+        alert("Invalid JSON file format.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function fillPlayerInputs(prefix, stats) {
+    document.getElementById(`${prefix}_damage`).value = stats.damage;
+    document.getElementById(`${prefix}_basespeed`).value = stats.basespeed;
+    document.getElementById(`${prefix}_speed`).value = stats.speed;
+    document.getElementById(`${prefix}_double`).value = stats.double;
+    document.getElementById(`${prefix}_crit`).value = stats.crit;
+    document.getElementById(`${prefix}_critdmg`).value = stats.critdmg;
+    document.getElementById(`${prefix}_lifesteal`).value = stats.lifesteal;
+    document.getElementById(`${prefix}_regen`).value = stats.regen;
+    document.getElementById(`${prefix}_block`).value = stats.block;
+    document.getElementById(`${prefix}_health`).value = stats.health;
+    document.getElementById(`${prefix}_hmult`).value = stats.hmult;
+	document.getElementById(`${prefix}_meleeDelay`).value = stats.meleeDelay;
+  }
+</script>
+</body>
+</html>
