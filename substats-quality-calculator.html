@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Substats Quality Calculator</title>
+    <style>
+      :root {
+        --bg: #0f1221;
+        --panel: #171a2e;
+        --accent: #5ad0ff;
+        --text: #e7e9ff;
+        --muted: #aab0d3;
+        --good: #45c269;
+        --warn: #ffb84d;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          "Helvetica Neue", Arial;
+      }
+      h1 {
+        font-size: 1.6rem;
+        margin: 0 0 12px;
+        text-align: center;
+        color: var(--accent);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid #262a4a;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        max-width: 980px;
+        margin: 0 auto;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* two equal columns */
+        gap: 14px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid #2a2f52;
+        border-radius: 10px;
+        padding: 12px;
+      }
+      label {
+        font-weight: 600;
+        color: var(--muted);
+      }
+      input[type="number"] {
+        padding: 6px;
+        border-radius: 6px;
+        border: 1px solid #31365f;
+        background: #0f1330;
+        color: var(--text);
+        width: 80px;
+      }
+      input[type="number"]:focus {
+        outline: 2px solid var(--accent);
+      }
+      input[type="range"] {
+        width: 100%;
+        -webkit-appearance: none;
+        height: 8px;
+        border-radius: 4px;
+        background: #2a2f52;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+      }
+      select {
+        padding: 6px;
+        border-radius: 6px;
+        border: 1px solid #31365f;
+        background: #0f1330;
+        color: var(--text);
+      }
+      .results {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .stat {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid #2a2f52;
+        border-radius: 10px;
+        padding: 12px;
+      }
+      .stat h3 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+        color: var(--muted);
+      }
+      .value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--good);
+      }
+      .average {
+        grid-column: span 2;
+        text-align: center;
+        margin-top: 20px;
+      }
+      .average .value {
+        font-size: 2rem;
+        color: var(--warn);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #171a2e;
+        border-bottom: 1px solid #2a2f52;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      .title-block {
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar .title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #5ad0ff;
+      }
+      .topbar .subtitle {
+        font-size: 0.9rem;
+        color: #aab0d3;
+        margin-top: 2px;
+      }
+      .topbar .back-btn {
+        background: #5ad0ff;
+        color: #081326;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 8px 14px;
+        border-radius: 6px;
+        transition: background 0.2s, transform 0.2s;
+      }
+      .topbar .back-btn:hover {
+        background: #3bb8e0;
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="topbar">
+        <div class="title-block">
+          <div class="title">Substats Quality Calculator</div>
+          <div class="subtitle">
+            Quickly measure how close your gear’s substats are to their maximum
+            potential.
+          </div>
+        </div>
+        <a href="index.html" class="back-btn">⬅ Home</a>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="value1">Substat 1</label>
+          <input type="number" id="value1" step="0.1" placeholder="Value" />
+          <input type="range" id="slider1" min="0" value="0" step="0.1" />
+          <select id="substat1"></select>
+        </div>
+        <div class="field">
+          <label for="value2">Substat 2</label>
+          <input type="number" id="value2" step="0.1" placeholder="Value" />
+          <input type="range" id="slider2" min="0" value="0" step="0.1" />
+          <select id="substat2"></select>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="stat">
+          <h3>Substat 1 Quality</h3>
+          <div class="value" id="quality1">-</div>
+        </div>
+        <div class="stat">
+          <h3>Substat 2 Quality</h3>
+          <div class="value" id="quality2">-</div>
+        </div>
+        <div class="stat average">
+          <h3>Average Quality</h3>
+          <div class="value" id="qualityAvg">-</div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const substats = {
+        "Double Chance": 40,
+        "Attack Speed": 40,
+        "Critical Chance": 12,
+        "Critical Damage": 100,
+        "Ranged Damage": 15,
+        "Melee Damage": 50,
+        Lifesteal: 20,
+        "Health Regen": 6,
+        "Block Chance": 5,
+      };
+
+      const substat1 = document.getElementById("substat1");
+      const substat2 = document.getElementById("substat2");
+      const value1 = document.getElementById("value1");
+      const value2 = document.getElementById("value2");
+      const slider1 = document.getElementById("slider1");
+      const slider2 = document.getElementById("slider2");
+
+      // Populate dropdowns
+      for (let key in substats) {
+        let option1 = document.createElement("option");
+        option1.value = key;
+        option1.text = key;
+        substat1.add(option1);
+
+        let option2 = document.createElement("option");
+        option2.value = key;
+        option2.text = key;
+        substat2.add(option2);
+      }
+
+      // Sync input and slider
+      function syncInputSlider(input, slider) {
+        input.addEventListener("input", () => {
+          slider.value = input.value;
+          calculate();
+        });
+        slider.addEventListener("input", () => {
+          input.value = slider.value;
+          calculate();
+        });
+      }
+      syncInputSlider(value1, slider1);
+      syncInputSlider(value2, slider2);
+
+      // Update slider max when substat changes
+      function updateSliderMax(substatSelect, slider, input) {
+        const max = substats[substatSelect.value];
+        slider.max = max;
+        if (parseFloat(input.value) > max) {
+          input.value = max;
+          slider.value = max;
+        }
+        calculate();
+      }
+      substat1.addEventListener("change", () =>
+        updateSliderMax(substat1, slider1, value1)
+      );
+      substat2.addEventListener("change", () =>
+        updateSliderMax(substat2, slider2, value2)
+      );
+
+      // Initialize slider max
+      updateSliderMax(substat1, slider1, value1);
+      updateSliderMax(substat2, slider2, value2);
+
+      function calculate() {
+        const val1 = parseFloat(value1.value) || 0;
+        const val2 = parseFloat(value2.value) || 0;
+        const stat1 = substat1.value;
+        const stat2 = substat2.value;
+
+        const max1 = substats[stat1];
+        const max2 = substats[stat2];
+
+        const perc1 = ((val1 / max1) * 100).toFixed(2);
+        const perc2 = ((val2 / max2) * 100).toFixed(2);
+        const avg = ((parseFloat(perc1) + parseFloat(perc2)) / 2).toFixed(2);
+
+        document.getElementById("quality1").textContent = perc1 + "%";
+        document.getElementById("quality2").textContent = perc2 + "%";
+        document.getElementById("qualityAvg").textContent = avg + "%";
+      }
+
+      // Initial calculation
+      calculate();
+    </script>
+  </body>
+</html>
