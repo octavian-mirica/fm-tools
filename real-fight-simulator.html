@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Monte Carlo Combat Simulator</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #111827;
+        color: #e5e7eb;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #f9fafb;
+        margin-top: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .card {
+        background: #1f2937;
+        border-radius: 8px;
+        padding: 16px;
+        border: 1px solid #374151;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        color: #9ca3af;
+        margin-bottom: 4px;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: #e5e7eb;
+        box-sizing: border-box;
+        font-size: 13px;
+      }
+
+      input[type="number"]:focus {
+        outline: 1px solid #3b82f6;
+        border-color: #3b82f6;
+      }
+
+      .inline-label {
+        font-size: 13px;
+        color: #e5e7eb;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .button-row {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      button {
+        background: #3b82f6;
+        border: none;
+        color: #f9fafb;
+        padding: 8px 14px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #2563eb;
+      }
+
+      button:disabled {
+        background: #4b5563;
+        cursor: default;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin-top: 10px;
+      }
+
+      th,
+      td {
+        border: 1px solid #374151;
+        padding: 4px 6px;
+        text-align: left;
+      }
+
+      th {
+        background: #111827;
+        font-weight: 600;
+      }
+
+      tr:nth-child(even) td {
+        background: #111827;
+      }
+
+      tr:nth-child(odd) td {
+        background: #020617;
+      }
+
+      .summary {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: #111827;
+        border: 1px solid #4b5563;
+        margin-right: 4px;
+      }
+
+      .winner-A {
+        color: #22c55e;
+      }
+
+      .winner-B {
+        color: #f97316;
+      }
+
+      details {
+        margin-top: 8px;
+        border-radius: 4px;
+        border: 1px solid #374151;
+        background: #020617;
+      }
+
+      details > summary {
+        cursor: pointer;
+        padding: 6px 8px;
+        font-size: 13px;
+        user-select: none;
+      }
+
+      .log-table-wrapper {
+        max-height: 300px;
+        overflow: auto;
+        border-top: 1px solid #374151;
+      }
+
+      .logs-meta {
+        font-size: 11px;
+        color: #9ca3af;
+        padding: 4px 8px;
+      }
+
+      .flex-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center; /* <-- Add this */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Monte Carlo Combat Simulator</h1>
+      <p style="font-size: 13px; color: #9ca3af; max-width: 800px">
+        Simulate real fights with RNG (crit, block, double, lifesteal, regen,
+        melee delay) across many runs. View ultra-detailed logs per fight.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Fighter A</h2>
+          <div class="grid">
+            <div>
+              <label>Base Speed (attacks/sec)</label>
+              <input
+                type="number"
+                id="a-baseSpeed"
+                step="0.001"
+                value="0.588"
+              />
+            </div>
+            <div>
+              <label>Base Damage</label>
+              <input type="number" id="a-baseDamage" step="1" value="100" />
+            </div>
+            <div>
+              <label>Base Health</label>
+              <input type="number" id="a-baseHealth" step="1" value="1000" />
+            </div>
+            <div>
+              <label>Double Chance (%)</label>
+              <input
+                type="number"
+                id="a-doubleChance"
+                step="1"
+                value="0"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Crit Chance (%)</label>
+              <input
+                type="number"
+                id="a-critChance"
+                step="1"
+                value="30"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Crit Damage (%)</label>
+              <input type="number" id="a-critDamage" step="1" value="50" />
+            </div>
+            <div>
+              <label>Block Chance (%)</label>
+              <input
+                type="number"
+                id="a-blockChance"
+                step="1"
+                value="10"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Lifesteal (%)</label>
+              <input
+                type="number"
+                id="a-lifesteal"
+                step="1"
+                value="5"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Health Regen (HP/sec)</label>
+              <input type="number" id="a-healthRegen" step="0.1" value="2" />
+            </div>
+            <div>
+              <label>Attack Speed (%)</label>
+              <input type="number" id="a-attackSpeed" step="1" value="0" />
+            </div>
+            <div>
+              <label>Health Multiplier PvP (%)</label>
+              <input
+                type="number"
+                id="a-healthMultiplier"
+                step="1"
+                value="500"
+              />
+            </div>
+            <div>
+              <label>Melee Delay (sec)</label>
+              <input type="number" id="a-meleeDelay" step="0.1" value="4" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Fighter B</h2>
+          <div class="grid">
+            <div>
+              <label>Base Speed (attacks/sec)</label>
+              <input
+                type="number"
+                id="b-baseSpeed"
+                step="0.001"
+                value="0.588"
+              />
+            </div>
+            <div>
+              <label>Base Damage</label>
+              <input type="number" id="b-baseDamage" step="1" value="100" />
+            </div>
+            <div>
+              <label>Base Health</label>
+              <input type="number" id="b-baseHealth" step="1" value="1000" />
+            </div>
+            <div>
+              <label>Double Chance (%)</label>
+              <input
+                type="number"
+                id="b-doubleChance"
+                step="1"
+                value="0"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Crit Chance (%)</label>
+              <input
+                type="number"
+                id="b-critChance"
+                step="1"
+                value="30"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Crit Damage (%)</label>
+              <input type="number" id="b-critDamage" step="1" value="50" />
+            </div>
+            <div>
+              <label>Block Chance (%)</label>
+              <input
+                type="number"
+                id="b-blockChance"
+                step="1"
+                value="10"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Lifesteal (%)</label>
+              <input
+                type="number"
+                id="b-lifesteal"
+                step="1"
+                value="5"
+                min="0"
+                max="100"
+              />
+            </div>
+            <div>
+              <label>Health Regen (HP/sec)</label>
+              <input type="number" id="b-healthRegen" step="0.1" value="2" />
+            </div>
+            <div>
+              <label>Attack Speed (%)</label>
+              <input type="number" id="b-attackSpeed" step="1" value="0" />
+            </div>
+            <div>
+              <label>Health Multiplier PvP (%)</label>
+              <input
+                type="number"
+                id="b-healthMultiplier"
+                step="1"
+                value="500"
+              />
+            </div>
+            <div>
+              <label>Melee Delay (sec)</label>
+              <input type="number" id="b-meleeDelay" step="0.1" value="4" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Simulation controls</h2>
+        <div class="flex-row">
+          <div>
+            <label>Import settings (JSON)</label>
+            <input type="file" id="jsonUpload" accept=".json" />
+          </div>
+          <div class="button-row">
+            <button id="loadJsonBtn">Load JSON</button>
+          </div>
+
+          <div>
+            <label>Number of fights to simulate</label>
+            <input
+              type="number"
+              id="numFights"
+              step="1"
+              min="1"
+              max="1000"
+              value="10"
+            />
+          </div>
+          <div>
+            <label>Regen tick (sec, smaller = more precise logs)</label>
+            <input
+              type="number"
+              id="regenTick"
+              step="0.01"
+              min="0.01"
+              value="0.1"
+            />
+          </div>
+          <div class="button-row">
+            <button id="runBtn">Run simulation</button>
+            <span id="status" style="font-size: 12px; color: #9ca3af"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Results summary</h2>
+        <div id="summary" class="summary">No simulations yet.</div>
+        <div id="fightsTableWrapper"></div>
+      </div>
+    </div>
+    <script>
+      function roll(percent) {
+        return Math.random() * 100 < percent;
+      }
+
+      function simulateFight(A, B) {
+        const fA = { ...A };
+        const fB = { ...B };
+
+        // Total PvP HP pool
+        fA.maxHp = fA.baseHealth * (fA.healthMultiplier / 100);
+        fB.maxHp = fB.baseHealth * (fB.healthMultiplier / 100);
+
+        // Start at full PvP HP
+        fA.hp = fA.maxHp;
+        fB.hp = fB.maxHp;
+
+        // Attack intervals
+        fA.attackInterval = 1 / (fA.baseSpeed * (1 + fA.attackSpeed / 100));
+        fB.attackInterval = 1 / (fB.baseSpeed * (1 + fB.attackSpeed / 100));
+
+        let time = 0;
+
+        // Next attack times (after melee delay)
+        let nextA = fA.meleeDelay;
+        let nextB = fB.meleeDelay;
+
+        const logs = [];
+
+        while (fA.hp > 0 && fB.hp > 0 && time < 3600) {
+          // Compute next event
+          let nextEvent = Math.min(nextA, nextB);
+
+          // GUARANTEE forward progress
+          if (nextEvent <= time) {
+            nextEvent = time + 0.0001; // tiny epsilon step
+          }
+
+          const dt = nextEvent - time;
+
+          // Regen analytically
+          const oldA = fA.hp;
+          const oldB = fB.hp;
+
+          if (fA.hp < fA.baseHealth) {
+            fA.hp = Math.min(fA.hp + fA.healthRegen * dt, fA.baseHealth);
+          }
+          if (fB.hp < fB.baseHealth) {
+            fB.hp = Math.min(fB.hp + fB.healthRegen * dt, fB.baseHealth);
+          }
+
+          if (fA.hp !== oldA || fB.hp !== oldB) {
+            logs.push({
+              type: "regen",
+              time: round4(nextEvent),
+              dt: round4(dt),
+              aHpBefore: round2(oldA),
+              aHpAfter: round2(fA.hp),
+              bHpBefore: round2(oldB),
+              bHpAfter: round2(fB.hp),
+            });
+          }
+
+          // Advance time
+          time = nextEvent;
+
+          // Execute event
+          if (time >= nextA) {
+            performAttackWithLog(fA, fB, "A", "B", time, logs, false);
+            nextA += fA.attackInterval;
+          }
+
+          if (time >= nextB) {
+            performAttackWithLog(fB, fA, "B", "A", time, logs, false);
+            nextB += fB.attackInterval;
+          }
+        }
+
+        const winner = fA.hp > 0 ? "A" : "B";
+
+        logs.push({
+          type: "end",
+          time: round4(time),
+          winner,
+          aHp: round2(fA.hp),
+          bHp: round2(fB.hp),
+        });
+
+        return {
+          winner,
+          time,
+          remainingA: fA.hp,
+          remainingB: fB.hp,
+          logs,
+        };
+      }
+
+      function performAttackWithLog(
+        attacker,
+        defender,
+        atkLabel,
+        defLabel,
+        time,
+        logs,
+        isDouble
+      ) {
+        // First hit
+        performSingleAttack(
+          attacker,
+          defender,
+          atkLabel,
+          defLabel,
+          time,
+          logs,
+          isDouble
+        );
+
+        // If double proc → ONE extra hit
+        if (roll(attacker.doubleChance) && defender.hp > 0) {
+          performSingleAttack(
+            attacker,
+            defender,
+            atkLabel,
+            defLabel,
+            time,
+            logs,
+            true
+          );
+        }
+      }
+
+      function performSingleAttack(
+        attacker,
+        defender,
+        atkLabel,
+        defLabel,
+        time,
+        logs,
+        isDouble
+      ) {
+        const blockRoll = roll(defender.blockChance);
+        const critRoll = !blockRoll && roll(attacker.critChance);
+
+        let damage = 0;
+        let lifestealAmount = 0;
+
+        if (!blockRoll) {
+          damage = attacker.baseDamage;
+          if (critRoll) {
+            damage *= 1 + attacker.critDamage / 100;
+          }
+
+          defender.hp -= damage;
+          if (defender.hp < 0) defender.hp = 0;
+
+          lifestealAmount = damage * (attacker.lifesteal / 100);
+          attacker.hp = Math.min(attacker.hp + lifestealAmount, attacker.maxHp);
+        }
+
+        logs.push({
+          type: "attack",
+          time: round4(time),
+          attacker: atkLabel,
+          defender: defLabel,
+          isDouble,
+          block: blockRoll,
+          crit: critRoll,
+          damage: round2(damage),
+          lifesteal: round2(lifestealAmount),
+          attackerHpAfter: round2(attacker.hp),
+          defenderHpAfter: round2(defender.hp),
+        });
+      }
+
+      function simulateNFights(A, B, count, regenTick) {
+        const fights = [];
+        for (let i = 0; i < count; i++) {
+          fights.push(simulateFight(A, B, regenTick));
+        }
+        return {
+          fights,
+          summary: summarize(fights),
+        };
+      }
+
+      function summarize(results) {
+        const times = results.map((r) => r.time);
+        const winsA = results.filter((r) => r.winner === "A").length;
+        const winsB = results.length - winsA;
+        const avgTime = average(times);
+        const minTime = Math.min(...times);
+        const maxTime = Math.max(...times);
+
+        return {
+          winsA,
+          winsB,
+          avgTime,
+          minTime,
+          maxTime,
+        };
+      }
+
+      function average(arr) {
+        if (arr.length === 0) return 0;
+        return arr.reduce((a, b) => a + b, 0) / arr.length;
+      }
+
+      function round2(x) {
+        return Math.round(x * 100) / 100;
+      }
+
+      function round4(x) {
+        return Math.round(x * 10000) / 10000;
+      }
+
+      function readFighter(prefix) {
+        return {
+          baseSpeed: parseFloat(
+            document.getElementById(prefix + "-baseSpeed").value || "0.588"
+          ),
+          baseDamage: parseFloat(
+            document.getElementById(prefix + "-baseDamage").value || "0"
+          ),
+          baseHealth: parseFloat(
+            document.getElementById(prefix + "-baseHealth").value || "1"
+          ),
+          doubleChance: parseFloat(
+            document.getElementById(prefix + "-doubleChance").value || "0"
+          ),
+          critChance: parseFloat(
+            document.getElementById(prefix + "-critChance").value || "0"
+          ),
+          critDamage: parseFloat(
+            document.getElementById(prefix + "-critDamage").value || "0"
+          ),
+          blockChance: parseFloat(
+            document.getElementById(prefix + "-blockChance").value || "0"
+          ),
+          lifesteal: parseFloat(
+            document.getElementById(prefix + "-lifesteal").value || "0"
+          ),
+          healthRegen: parseFloat(
+            document.getElementById(prefix + "-healthRegen").value || "0"
+          ),
+          attackSpeed: parseFloat(
+            document.getElementById(prefix + "-attackSpeed").value || "0"
+          ),
+          healthMultiplier: parseFloat(
+            document.getElementById(prefix + "-healthMultiplier").value || "100"
+          ),
+          meleeDelay: parseFloat(
+            document.getElementById(prefix + "-meleeDelay").value || "0"
+          ),
+        };
+      }
+
+      function renderResults(result) {
+        const summaryDiv = document.getElementById("summary");
+        const tableWrapper = document.getElementById("fightsTableWrapper");
+
+        const s = result.summary;
+        summaryDiv.innerHTML = `
+            <div>
+                <span class="tag winner-A">A wins: ${s.winsA}</span>
+                <span class="tag winner-B">B wins: ${s.winsB}</span>
+                <span class="tag">Total fights: ${s.winsA + s.winsB}</span>
+            </div>
+            <div style="margin-top:4px;">
+                <span class="tag">Avg time: ${round2(s.avgTime)} s</span>
+                <span class="tag">Min time: ${round2(s.minTime)} s</span>
+                <span class="tag">Max time: ${round2(s.maxTime)} s</span>
+            </div>
+        `;
+
+        const rows = result.fights
+          .map((f, idx) => {
+            const winnerClass = f.winner === "A" ? "winner-A" : "winner-B";
+            return `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td><span class="${winnerClass}">${f.winner}</span></td>
+                    <td>${round2(f.time)}</td>
+                    <td>${round2(f.remainingA)}</td>
+                    <td>${round2(f.remainingB)}</td>
+                    <td>
+                        <details>
+                            <summary>View log (${
+                              f.logs.length
+                            } events)</summary>
+                            <div class="logs-meta">
+                                Ultra-detailed log: regen ticks, attacks, lifesteal, melee delay effects.
+                            </div>
+                            <div class="log-table-wrapper">
+                                ${renderLogTable(f.logs)}
+                            </div>
+                        </details>
+                    </td>
+                </tr>
+            `;
+          })
+          .join("");
+
+        tableWrapper.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fight #</th>
+                        <th>Winner</th>
+                        <th>Duration (s)</th>
+                        <th>Remaining HP A</th>
+                        <th>Remaining HP B</th>
+                        <th>Log</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        `;
+      }
+
+      function renderLogTable(logs) {
+        const header = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time (s)</th>
+                        <th>Type</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        const body = logs
+          .map((entry) => {
+            if (entry.type === "regen") {
+              const detail = `
+                    Regen over ${entry.dt}s:
+                    A HP ${entry.aHpBefore} → ${entry.aHpAfter},
+                    B HP ${entry.bHpBefore} → ${entry.bHpAfter}
+                `;
+              return `
+                    <tr>
+                        <td>${entry.time}</td>
+                        <td>Regen</td>
+                        <td>${detail}</td>
+                    </tr>
+                `;
+            } else if (entry.type === "attack") {
+              const flags = [];
+              if (entry.block) flags.push("BLOCK");
+              if (entry.crit) flags.push("CRIT");
+              if (entry.isDouble) flags.push("DOUBLE-HIT");
+              if (entry.doubleProc && !entry.isDouble)
+                flags.push("DOUBLE-PROC");
+
+              const flagStr = flags.length ? ` [${flags.join(", ")}]` : "";
+              const detail = `
+                    ${entry.attacker} → ${entry.defender}${flagStr}<br>
+                    Damage: ${entry.damage}, Lifesteal: ${entry.lifesteal}<br>
+                    Attacker HP after: ${entry.attackerHpAfter},
+                    Defender HP after: ${entry.defenderHpAfter}
+                `;
+              return `
+                    <tr>
+                        <td>${entry.time}</td>
+                        <td>Attack</td>
+                        <td>${detail}</td>
+                    </tr>
+                `;
+            } else if (entry.type === "end") {
+              const detail = `
+                    Fight ended. Winner: ${entry.winner}.
+                    A HP: ${entry.aHp}, B HP: ${entry.bHp}
+                `;
+              return `
+                    <tr>
+                        <td>${entry.time}</td>
+                        <td>End</td>
+                        <td>${detail}</td>
+                    </tr>
+                `;
+            } else {
+              return `
+                    <tr>
+                        <td>${entry.time || ""}</td>
+                        <td>${entry.type}</td>
+                        <td>${JSON.stringify(entry)}</td>
+                    </tr>
+                `;
+            }
+          })
+          .join("");
+
+        return header + body + "</tbody></table>";
+      }
+
+      document.getElementById("loadJsonBtn").addEventListener("click", () => {
+        const fileInput = document.getElementById("jsonUpload");
+        const file = fileInput.files?.[0];
+
+        if (!file) {
+          alert("Please select a JSON file first.");
+          return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+
+            // Validate structure
+            if (!data.fighterA || !data.fighterB) {
+              alert(
+                "Invalid JSON: expected { fighterA: {...}, fighterB: {...} }"
+              );
+              return;
+            }
+
+            loadFighterIntoForm("a", data.fighterA);
+            loadFighterIntoForm("b", data.fighterB);
+
+            if (data.numFights) {
+              document.getElementById("numFights").value = data.numFights;
+            }
+
+            if (data.regenTick) {
+              document.getElementById("regenTick").value = data.regenTick;
+            }
+
+            alert("Settings loaded successfully.");
+          } catch (err) {
+            alert("Error parsing JSON: " + err.message);
+          }
+        };
+
+        reader.readAsText(file);
+      });
+
+      // Helper to populate form fields
+      function loadFighterIntoForm(prefix, obj) {
+        const fields = [
+          "baseSpeed",
+          "baseDamage",
+          "baseHealth",
+          "doubleChance",
+          "critChance",
+          "critDamage",
+          "blockChance",
+          "lifesteal",
+          "healthRegen",
+          "attackSpeed",
+          "healthMultiplier",
+          "meleeDelay",
+        ];
+
+        fields.forEach((field) => {
+          const el = document.getElementById(`${prefix}-${field}`);
+          if (el && obj[field] !== undefined) {
+            el.value = obj[field];
+          }
+        });
+      }
+
+      document.getElementById("runBtn").addEventListener("click", () => {
+        const status = document.getElementById("status");
+        const numFightsInput = document.getElementById("numFights");
+        const regenTickInput = document.getElementById("regenTick");
+
+        const count = parseInt(numFightsInput.value || "10", 10);
+        const regenTick = parseFloat(regenTickInput.value || "0.1");
+
+        if (isNaN(count) || count < 1) {
+          alert("Number of fights must be at least 1.");
+          return;
+        }
+
+        status.textContent = "Simulating...";
+        document.getElementById("runBtn").disabled = true;
+
+        setTimeout(() => {
+          const A = readFighter("a");
+          const B = readFighter("b");
+          const result = simulateNFights(A, B, count, regenTick);
+
+          renderResults(result);
+
+          status.textContent = `Done. Simulated ${count} fights.`;
+          document.getElementById("runBtn").disabled = false;
+        }, 10);
+      });
+    </script>
+  </body>
+</html>
