@@ -423,6 +423,24 @@
         return Math.random() * 100 < percent;
       }
 
+      function formatNumber(n) {
+        if (n === null || n === undefined || isNaN(n)) return n;
+
+        const abs = Math.abs(n);
+
+        if (abs >= 1_000_000_000) {
+          return (n / 1_000_000_000).toFixed(2).replace(/\.00$/, "") + "B";
+        }
+        if (abs >= 1_000_000) {
+          return (n / 1_000_000).toFixed(2).replace(/\.00$/, "") + "M";
+        }
+        if (abs >= 1_000) {
+          return (n / 1_000).toFixed(2).replace(/\.00$/, "") + "K";
+        }
+
+        return n.toString();
+      }
+
       function simulateFight(A, B) {
         const fA = { ...A };
         const fB = { ...B };
@@ -700,8 +718,8 @@
                     <td>${idx + 1}</td>
                     <td><span class="${winnerClass}">${f.winner}</span></td>
                     <td>${round2(f.time)}</td>
-                    <td>${round2(f.remainingA)}</td>
-                    <td>${round2(f.remainingB)}</td>
+                    <td>${formatNumber(round2(f.remainingA))}</td>
+                    <td>${formatNumber(round2(f.remainingB))}</td>
                     <td>
                         <details>
                             <summary>View log (${
@@ -757,8 +775,12 @@
             if (entry.type === "regen") {
               const detail = `
                     Regen over ${entry.dt}s:
-                    A HP ${entry.aHpBefore} → ${entry.aHpAfter},
-                    B HP ${entry.bHpBefore} → ${entry.bHpAfter}
+                    A HP ${formatNumber(entry.aHpBefore)} → ${formatNumber(
+                entry.aHpAfter
+              )},
+                    B HP ${formatNumber(entry.bHpBefore)} → ${formatNumber(
+                entry.bHpAfter
+              )}
                 `;
               return `
                     <tr>
@@ -778,9 +800,11 @@
               const flagStr = flags.length ? ` [${flags.join(", ")}]` : "";
               const detail = `
                     ${entry.attacker} → ${entry.defender}${flagStr}<br>
-                    Damage: ${entry.damage}, Lifesteal: ${entry.lifesteal}<br>
-                    Attacker HP after: ${entry.attackerHpAfter},
-                    Defender HP after: ${entry.defenderHpAfter}
+                    Damage: ${formatNumber(
+                      entry.damage
+                    )}, Lifesteal: ${formatNumber(entry.lifesteal)}<br>
+                    Attacker HP after: ${formatNumber(entry.attackerHpAfter)},
+                    Defender HP after: ${formatNumber(entry.defenderHpAfter)}
                 `;
               return `
                     <tr>
