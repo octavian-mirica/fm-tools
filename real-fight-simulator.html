@@ -413,15 +413,29 @@
       </div>
     </div>
     <script>
+      // ---------- Utility helpers ----------
+
       function roll(percent) {
         return Math.random() * 100 < percent;
       }
 
+      function average(arr) {
+        if (!arr.length) return 0;
+        return arr.reduce((a, b) => a + b, 0) / arr.length;
+      }
+
+      function round2(x) {
+        return Math.round(x * 100) / 100;
+      }
+
+      function round4(x) {
+        return Math.round(x * 10000) / 10000;
+      }
+
+      // Format big numbers nicely: 1.23K, 4.5M, 2.1B
       function formatNumber(n) {
         if (n === null || n === undefined || isNaN(n)) return n;
-
         const abs = Math.abs(n);
-
         if (abs >= 1_000_000_000) {
           return (n / 1_000_000_000).toFixed(2).replace(/\.00$/, "") + "B";
         }
@@ -431,9 +445,10 @@
         if (abs >= 1_000) {
           return (n / 1_000).toFixed(2).replace(/\.00$/, "") + "K";
         }
-
         return n.toString();
       }
+
+      // ---------- Core simulation ----------
 
       function simulateFight(A, B) {
         const fA = { ...A };
@@ -447,68 +462,98 @@
         fA.hp = fA.maxHp;
         fB.hp = fB.maxHp;
 
-        // Attack intervals
+        // Attack intervals (attackSpeed is a bonus %, so 100 = +100% = 2x)
         fA.attackInterval = 1 / (fA.baseSpeed * (1 + fA.attackSpeed / 100));
         fB.attackInterval = 1 / (fB.baseSpeed * (1 + fB.attackSpeed / 100));
 
         let time = 0;
 
-        // Next attack times (after melee delay)
+        // Next attack times (respect melee delay)
         let nextA = fA.meleeDelay;
         let nextB = fB.meleeDelay;
 
         const logs = [];
 
-        while (fA.hp > 0 && fB.hp > 0 && time < 3600) {
-          // Compute next event
+        const MAX_TIME = 3600; // safety limit
+
+        while (fA.hp > 0 && fB.hp > 0 && time < MAX_TIME) {
+          // Determine next event time
           let nextEvent = Math.min(nextA, nextB);
 
-          // GUARANTEE forward progress
-          if (nextEvent <= time) {
-            nextEvent = time + 0.0001; // tiny epsilon step
-          }
+          if (!isFinite(nextEvent)) break;
 
           const dt = nextEvent - time;
 
-          // Regen analytically
-          const oldA = fA.hp;
-          const oldB = fB.hp;
+          // Regen applies based on baseHealth regen rate, but heals into the full maxHp pool
+          if (dt > 0) {
+            const oldA = fA.hp;
+            const oldB = fB.hp;
 
-          if (fA.hp < fA.baseHealth) {
-            fA.hp = Math.min(fA.hp + fA.healthRegen * dt, fA.baseHealth);
-          }
-          if (fB.hp < fB.baseHealth) {
-            fB.hp = Math.min(fB.hp + fB.healthRegen * dt, fB.baseHealth);
+            if (fA.healthRegen > 0) {
+              fA.hp = Math.min(fA.hp + fA.healthRegen * dt, fA.maxHp);
+            }
+            if (fB.healthRegen > 0) {
+              fB.hp = Math.min(fB.hp + fB.healthRegen * dt, fB.maxHp);
+            }
+
+            if (fA.hp !== oldA || fB.hp !== oldB) {
+              logs.push({
+                type: "regen",
+                time: round4(nextEvent),
+                dt: round4(dt),
+                aHpBefore: round2(oldA),
+                aHpAfter: round2(fA.hp),
+                bHpBefore: round2(oldB),
+                bHpAfter: round2(fB.hp),
+              });
+            }
           }
 
-          if (fA.hp !== oldA || fB.hp !== oldB) {
-            logs.push({
-              type: "regen",
-              time: round4(nextEvent),
-              dt: round4(dt),
-              aHpBefore: round2(oldA),
-              aHpAfter: round2(fA.hp),
-              bHpBefore: round2(oldB),
-              bHpAfter: round2(fB.hp),
-            });
-          }
-
-          // Advance time
+          // Advance time to the next event
           time = nextEvent;
 
-          // Execute event
-          if (time >= nextA) {
-            performAttackWithLog(fA, fB, "A", "B", time, logs, false);
-            nextA += fA.attackInterval;
-          }
+          // Check which attacks happen at this exact time
+          const eps = 1e-9;
+          const aAttacksNow = time + eps >= nextA;
+          const bAttacksNow = time + eps >= nextB;
 
-          if (time >= nextB) {
-            performAttackWithLog(fB, fA, "B", "A", time, logs, false);
+          // If both attack at the same time, randomize order to avoid deterministic bias
+          if (aAttacksNow && bAttacksNow && fA.hp > 0 && fB.hp > 0) {
+            if (Math.random() < 0.5) {
+              performAttackWithLog(fA, fB, "A", "B", time, logs);
+              if (fB.hp > 0) {
+                performAttackWithLog(fB, fA, "B", "A", time, logs);
+              }
+            } else {
+              performAttackWithLog(fB, fA, "B", "A", time, logs);
+              if (fA.hp > 0) {
+                performAttackWithLog(fA, fB, "A", "B", time, logs);
+              }
+            }
+            nextA += fA.attackInterval;
             nextB += fB.attackInterval;
+          } else {
+            if (aAttacksNow && fA.hp > 0 && fB.hp > 0) {
+              performAttackWithLog(fA, fB, "A", "B", time, logs);
+              nextA += fA.attackInterval;
+            }
+            if (bAttacksNow && fA.hp > 0 && fB.hp > 0) {
+              performAttackWithLog(fB, fA, "B", "A", time, logs);
+              nextB += fB.attackInterval;
+            }
           }
         }
 
-        const winner = fA.hp > 0 ? "A" : "B";
+        const winner =
+          fA.hp > 0 && fB.hp <= 0
+            ? "A"
+            : fB.hp > 0 && fA.hp <= 0
+            ? "B"
+            : fA.hp > fB.hp
+            ? "A"
+            : fB.hp > fA.hp
+            ? "B"
+            : "draw";
 
         logs.push({
           type: "end",
@@ -527,14 +572,14 @@
         };
       }
 
+      // One logical "attack event" that may include a double-hit (exactly one extra)
       function performAttackWithLog(
         attacker,
         defender,
         atkLabel,
         defLabel,
         time,
-        logs,
-        isDouble
+        logs
       ) {
         // First hit
         performSingleAttack(
@@ -544,10 +589,13 @@
           defLabel,
           time,
           logs,
-          isDouble
+          false
         );
 
-        // If double proc → ONE extra hit
+        // If defender died on the first hit, stop
+        if (defender.hp <= 0) return;
+
+        // Double chance: exactly ONE extra hit, no infinite chaining
         if (roll(attacker.doubleChance) && defender.hp > 0) {
           performSingleAttack(
             attacker,
@@ -561,6 +609,7 @@
         }
       }
 
+      // A single hit resolution (no recursion, no chaining)
       function performSingleAttack(
         attacker,
         defender,
@@ -586,7 +635,8 @@
           if (defender.hp < 0) defender.hp = 0;
 
           lifestealAmount = damage * (attacker.lifesteal / 100);
-          attacker.hp = Math.min(attacker.hp + lifestealAmount, attacker.maxHp);
+          const cap = attacker.maxHp || attacker.baseHealth;
+          attacker.hp = Math.min(attacker.hp + lifestealAmount, cap);
         }
 
         logs.push({
@@ -594,7 +644,7 @@
           time: round4(time),
           attacker: atkLabel,
           defender: defLabel,
-          isDouble,
+          isDouble: isDouble,
           block: blockRoll,
           crit: critRoll,
           damage: round2(damage),
@@ -604,10 +654,10 @@
         });
       }
 
-      function simulateNFights(A, B, count, regenTick) {
+      function simulateNFights(A, B, count) {
         const fights = [];
         for (let i = 0; i < count; i++) {
-          fights.push(simulateFight(A, B, regenTick));
+          fights.push(simulateFight(A, B));
         }
         return {
           fights,
@@ -618,32 +668,20 @@
       function summarize(results) {
         const times = results.map((r) => r.time);
         const winsA = results.filter((r) => r.winner === "A").length;
-        const winsB = results.length - winsA;
-        const avgTime = average(times);
-        const minTime = Math.min(...times);
-        const maxTime = Math.max(...times);
+        const winsB = results.filter((r) => r.winner === "B").length;
+        const draws = results.filter((r) => r.winner === "draw").length;
 
         return {
           winsA,
           winsB,
-          avgTime,
-          minTime,
-          maxTime,
+          draws,
+          avgTime: average(times),
+          minTime: Math.min(...times),
+          maxTime: Math.max(...times),
         };
       }
 
-      function average(arr) {
-        if (arr.length === 0) return 0;
-        return arr.reduce((a, b) => a + b, 0) / arr.length;
-      }
-
-      function round2(x) {
-        return Math.round(x * 100) / 100;
-      }
-
-      function round4(x) {
-        return Math.round(x * 10000) / 10000;
-      }
+      // ---------- Reading inputs ----------
 
       function readFighter(prefix) {
         return {
@@ -686,16 +724,21 @@
         };
       }
 
+      // ---------- Rendering ----------
+
       function renderResults(result) {
         const summaryDiv = document.getElementById("summary");
         const tableWrapper = document.getElementById("fightsTableWrapper");
 
         const s = result.summary;
+        const totalFights = s.winsA + s.winsB + s.draws;
+
         summaryDiv.innerHTML = `
             <div>
                 <span class="tag winner-A">A wins: ${s.winsA}</span>
                 <span class="tag winner-B">B wins: ${s.winsB}</span>
-                <span class="tag">Total fights: ${s.winsA + s.winsB}</span>
+                <span class="tag">Draws: ${s.draws}</span>
+                <span class="tag">Total fights: ${totalFights}</span>
             </div>
             <div style="margin-top:4px;">
                 <span class="tag">Avg time: ${round2(s.avgTime)} s</span>
@@ -706,7 +749,10 @@
 
         const rows = result.fights
           .map((f, idx) => {
-            const winnerClass = f.winner === "A" ? "winner-A" : "winner-B";
+            let winnerClass = "";
+            if (f.winner === "A") winnerClass = "winner-A";
+            else if (f.winner === "B") winnerClass = "winner-B";
+
             return `
                 <tr>
                     <td>${idx + 1}</td>
@@ -788,8 +834,6 @@
               if (entry.block) flags.push("BLOCK");
               if (entry.crit) flags.push("CRIT");
               if (entry.isDouble) flags.push("DOUBLE-HIT");
-              if (entry.doubleProc && !entry.isDouble)
-                flags.push("DOUBLE-PROC");
 
               const flagStr = flags.length ? ` [${flags.join(", ")}]` : "";
               const detail = `
@@ -810,7 +854,9 @@
             } else if (entry.type === "end") {
               const detail = `
                     Fight ended. Winner: ${entry.winner}.
-                    A HP: ${entry.aHp}, B HP: ${entry.bHp}
+                    A HP: ${formatNumber(entry.aHp)}, B HP: ${formatNumber(
+                entry.bHp
+              )}
                 `;
               return `
                     <tr>
@@ -834,6 +880,8 @@
         return header + body + "</tbody></table>";
       }
 
+      // ---------- JSON import ----------
+
       document.getElementById("loadJsonBtn").addEventListener("click", () => {
         const fileInput = document.getElementById("jsonUpload");
         const file = fileInput.files?.[0];
@@ -849,7 +897,6 @@
           try {
             const data = JSON.parse(e.target.result);
 
-            // Validate structure
             if (!data.fighterA || !data.fighterB) {
               alert(
                 "Invalid JSON: expected { fighterA: {...}, fighterB: {...} }"
@@ -865,7 +912,8 @@
             }
 
             if (data.regenTick) {
-              document.getElementById("regenTick").value = data.regenTick;
+              const regenTickInput = document.getElementById("regenTick");
+              if (regenTickInput) regenTickInput.value = data.regenTick;
             }
 
             alert("Settings loaded successfully.");
@@ -877,7 +925,6 @@
         reader.readAsText(file);
       });
 
-      // Helper to populate form fields
       function loadFighterIntoForm(prefix, obj) {
         const fields = [
           "baseSpeed",
@@ -902,13 +949,13 @@
         });
       }
 
+      // ---------- Run button ----------
+
       document.getElementById("runBtn").addEventListener("click", () => {
         const status = document.getElementById("status");
         const numFightsInput = document.getElementById("numFights");
-        const regenTickInput = document.getElementById("regenTick");
 
         const count = parseInt(numFightsInput.value || "10", 10);
-        const regenTick = parseFloat(regenTickInput.value || "0.1");
 
         if (isNaN(count) || count < 1) {
           alert("Number of fights must be at least 1.");
@@ -921,7 +968,8 @@
         setTimeout(() => {
           const A = readFighter("a");
           const B = readFighter("b");
-          const result = simulateNFights(A, B, count, regenTick);
+
+          const result = simulateNFights(A, B, count);
 
           renderResults(result);
 
@@ -932,4 +980,3 @@
     </script>
   </body>
 </html>
-
