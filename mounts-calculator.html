@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -19,8 +19,14 @@
         padding: 24px;
         background: var(--bg);
         color: var(--text);
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          "Helvetica Neue", Arial;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          "Helvetica Neue",
+          Arial;
       }
       h1 {
         font-size: 1.6rem;
@@ -172,7 +178,9 @@
         font-weight: 600;
         padding: 8px 14px;
         border-radius: 6px;
-        transition: background 0.2s, transform 0.2s;
+        transition:
+          background 0.2s,
+          transform 0.2s;
       }
       .topbar .back-btn:hover {
         background: #3bb8e0;
@@ -253,7 +261,7 @@
                     value="16.5"
                   />
                 </td>
-                <td>400</td>
+                <td>50</td>
                 <td id="countCommon">0</td>
                 <td id="pointsCommon">0</td>
               </tr>
@@ -267,7 +275,7 @@
                     value="16.5"
                   />
                 </td>
-                <td>600</td>
+                <td>100</td>
                 <td id="countRare">0</td>
                 <td id="pointsRare">0</td>
               </tr>
@@ -281,7 +289,7 @@
                     value="16.5"
                   />
                 </td>
-                <td>900</td>
+                <td>250</td>
                 <td id="countEpic">0</td>
                 <td id="pointsEpic">0</td>
               </tr>
@@ -295,7 +303,7 @@
                     value="16.5"
                   />
                 </td>
-                <td>1350</td>
+                <td>500</td>
                 <td id="countLegendary">0</td>
                 <td id="pointsLegendary">0</td>
               </tr>
@@ -309,7 +317,7 @@
                     value="28.3"
                   />
                 </td>
-                <td>2000</td>
+                <td>1500</td>
                 <td id="countUltimate">0</td>
                 <td id="pointsUltimate">0</td>
               </tr>
@@ -323,7 +331,7 @@
                     value="5.7"
                   />
                 </td>
-                <td>3000</td>
+                <td>2500</td>
                 <td id="countMythic">0</td>
                 <td id="pointsMythic">0</td>
               </tr>
@@ -352,42 +360,42 @@
       const rarities = [
         {
           name: "Common",
-          points: 400,
+          points: 50,
           chanceId: "chanceCommon",
           countId: "countCommon",
           pointsId: "pointsCommon",
         },
         {
           name: "Rare",
-          points: 600,
+          points: 100,
           chanceId: "chanceRare",
           countId: "countRare",
           pointsId: "pointsRare",
         },
         {
           name: "Epic",
-          points: 900,
+          points: 250,
           chanceId: "chanceEpic",
           countId: "countEpic",
           pointsId: "pointsEpic",
         },
         {
           name: "Legendary",
-          points: 1350,
+          points: 500,
           chanceId: "chanceLegendary",
           countId: "countLegendary",
           pointsId: "pointsLegendary",
         },
         {
           name: "Ultimate",
-          points: 2000,
+          points: 1500,
           chanceId: "chanceUltimate",
           countId: "countUltimate",
           pointsId: "pointsUltimate",
         },
         {
           name: "Mythic",
-          points: 3000,
+          points: 2500,
           chanceId: "chanceMythic",
           countId: "countMythic",
           pointsId: "pointsMythic",
@@ -451,11 +459,11 @@
         const rars = readChances();
         const totalChance = rars.reduce(
           (s, r) => s + (isNaN(r.chancePct) ? 0 : r.chancePct),
-          0
+          0,
         );
         document.getElementById("totalChance").textContent = `${formatFloat(
           totalChance,
-          1
+          1,
         )}%`;
         if (Math.abs(totalChance - 100) > 0.001) {
           document.getElementById("validation").textContent =
@@ -480,7 +488,7 @@
 
           document.getElementById(r.countId).textContent = formatFloat(
             expCount,
-            2
+            2,
           );
           document.getElementById(r.pointsId).textContent =
             formatInt(expPoints);
@@ -489,7 +497,7 @@
         // Totals
         document.getElementById("totalMountsCell").textContent = formatFloat(
           expectedMountsTotal,
-          2
+          2,
         );
         document.getElementById("totalPointsCell").textContent =
           formatInt(sumExpPoints);
@@ -497,38 +505,31 @@
         // Header stats
         document.getElementById("totalPoints").textContent =
           formatInt(sumExpPoints);
-        document.getElementById(
-          "perMountExp"
-        ).textContent = `Expected points per mount ≈ ${formatFloat(
-          expPerMount,
-          2
-        )}`;
-        document.getElementById(
-          "drawsSummary"
-        ).textContent = `Usable draws: ${draws} (cost ${summonCost} keys each)`;
-        document.getElementById(
-          "mountsSummary"
-        ).textContent = `Expected mounts: ${formatFloat(
-          expectedMountsTotal,
-          2
-        )} (per draw: ${formatFloat(mountsPerDraw, 2)})`;
+        document.getElementById("perMountExp").textContent =
+          `Expected points per mount ≈ ${formatFloat(expPerMount, 2)}`;
+        document.getElementById("drawsSummary").textContent =
+          `Usable draws: ${draws} (cost ${summonCost} keys each)`;
+        document.getElementById("mountsSummary").textContent =
+          `Expected mounts: ${formatFloat(
+            expectedMountsTotal,
+            2,
+          )} (per draw: ${formatFloat(mountsPerDraw, 2)})`;
         document.getElementById("keysSummary").textContent = `Keys used: ${
           draws * summonCost
         } · Unused keys: ${leftoverKeys}`;
 
         // Footnote
-        document.getElementById(
-          "footNote"
-        ).textContent = `Quick math: draws = floor(keys / cost) → floor(${formatInt(
-          keysToUse
-        )} / ${formatInt(summonCost)}) = ${draws}.
+        document.getElementById("footNote").textContent =
+          `Quick math: draws = floor(keys / cost) → floor(${formatInt(
+            keysToUse,
+          )} / ${formatInt(summonCost)}) = ${draws}.
          Expected mounts = draws × (1 + bonus%) → ${draws} × ${formatFloat(
-          1 + extraChance / 100,
-          2
-        )} = ${formatFloat(expectedMountsTotal, 2)}.
+           1 + extraChance / 100,
+           2,
+         )} = ${formatFloat(expectedMountsTotal, 2)}.
          Expected points ≈ mounts × points/mount → ${formatFloat(
            expectedMountsTotal,
-           2
+           2,
          )} × ${formatFloat(expPerMount, 2)} = ${formatInt(sumExpPoints)}.`;
 
         document.getElementById("results").style.display = "grid";
